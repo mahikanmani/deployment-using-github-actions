@@ -12,38 +12,62 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0  # Shallow clones should be disabled for better relevancy of analysis
+
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      - name: Set up Node.js
+
+      - name: Set up Node.js and install npm
         run: |
-           curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-           sudo apt-get install -y nodejs
-           node -v
-           npm -v
-        
+          curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -  # Install Node.js 18.x (LTS)
+          sudo apt-get install -y nodejs
+          sudo apt-get install -y npm  # Explicitly install npm
+          node -v
+          npm -v  # Verify Node.js and npm installation
+
+      - name: NPM Install
+        run: npm install
+
       - name: Docker build and push
         run: |
-          # Run commands to build and push Docker images
+          echo "Building Docker image..."
           docker build -t swiggy-clone .
+          echo "Tagging Docker image..."
           docker tag swiggy-clone aakibkhan1212/swiggy-clone:latest
+          echo "Logging into DockerHub..."
           docker login -u ${{ secrets.Dockerhub_username }} -p ${{ secrets.Dockerhub_token }}
+          echo "Pushing Docker image to DockerHub..."
           docker push aakibkhan1212/swiggy-clone:latest
         env:
           DOCKER_CLI_ACI: 1
+
   deploy:
-   needs: build
-   runs-on: [self-hosted]
-   steps:
+    needs: build
+    runs-on: [self-hosted]
+    steps:
+      - name: Install AWS CLI and kubectl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+          curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+          aws --version
+          kubectl version --client
+
       - name: docker pull image
         run: docker pull aakibkhan1212/swiggy-clone:latest
+
       - name: Image scan
         run: trivy image aakibkhan1212/swiggy-clone:latest > trivyimagedeploy.txt
+
       - name: Deploy to container
         run: docker run -d --name swiggy-clone1 -p 3000:3000 aakibkhan1212/swiggy-clone:latest
+
       - name: Update kubeconfig
         run: aws eks --region ap-south-1 update-kubeconfig --name EKS_CLOUD
+
       - name: Deploy to kubernetes
         run: kubectl apply -f deployment-service.yml
