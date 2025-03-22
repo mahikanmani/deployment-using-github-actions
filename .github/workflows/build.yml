@@ -19,13 +19,16 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Set up Node.js and install npm
+      - name: Install Node.js and npm
         run: |
-          curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -  # Install Node.js 18.x (LTS)
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg
+          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -  # Use LTS version
           sudo apt-get install -y nodejs
-          sudo apt-get install -y npm  # Explicitly install npm
-          node -v
-          npm -v  # Verify Node.js and npm installation
+          sudo apt-get install -y npm  # Ensure npm is installed
+          sudo apt-get install -f  # Attempt to fix any broken packages
+          node -v  # Verify Node.js version
+          npm -v  # Verify npm version
 
       - name: NPM Install
         run: npm install
