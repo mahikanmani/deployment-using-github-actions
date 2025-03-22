@@ -26,7 +26,7 @@ jobs:
         run: |
           docker build -t swiggy-clone .
           docker tag swiggy-clone mahi04kanmani/swiggy-clone:latest
-          echo ${{ secrets.Dockerhub_token }} | docker login -u ${{ secrets.Dockerhub_username }} --password-stdin https://index.docker.io/v1/
+          echo ${{ secrets.Dockerhub_token }} | docker login -u ${{ secrets.Dockerhub_username }} --password-stdin https://registry.hub.docker.com
           docker push mahi04kanmani/swiggy-clone:latest
         env:
           DOCKER_CLI_ACI: 1
